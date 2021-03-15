@@ -26,13 +26,18 @@ class ParserSite(Thread):
 
     def run(self):
         while True:
+            if self.quitFlag:
+                try:
+                    break
+                except Exception:
+                    print("try exit")
             self.driver.get(self.URL)
             self.steam_profiles = []
             self.get_steam_account()
             for steam_profile in self.steam_profiles:
                 if self.quitFlag:
                     try:
-                        self.driver.quit()
+                        break
                     except Exception:
                         print("try exit")
                 if steam_profile not in self.accounts_used:
@@ -49,6 +54,7 @@ class ParserSite(Thread):
                     self.accounts.append(account)
                 else:
                     continue
+        self.driver.quit()
 
     def load_webdriver(self):
         # Запрет на загрузку картинок
@@ -63,6 +69,11 @@ class ParserSite(Thread):
                                  options=fireOptions, firefox_profile=profile)
 
     def get_steam_account(self):
+        if self.quitFlag:
+            try:
+                return None
+            except Exception:
+                print("try exit")
         # Получение ссылок на профиль Forcedrop
         items = []
         while True:
@@ -101,6 +112,11 @@ class ParserSite(Thread):
             )
 
     def item_price(self, steam_profile):
+        if self.quitFlag:
+            try:
+                return 0
+            except Exception:
+                print("try exit")
         # Получени стоймости профиля Steam
         try:
             self.driver.get(self.URL_PRICE)
@@ -137,7 +153,7 @@ class ParserSite(Thread):
                     break
         except Exception:
             self.driver.get(self.URL_PRICE)
-            return "Inventory closed"
+            return 0
         return(self.summa_items(Steam_items))
 
     def summa_items(self, Sitems):
@@ -152,6 +168,11 @@ class ParserSite(Thread):
         return sum
 
     def hours_play(self, steam_profile):
+        if self.quitFlag:
+            try:
+                return None
+            except Exception:
+                print("try exit")
         dota2hours = 0
         csgohours = 0
         try:
@@ -177,6 +198,11 @@ class ParserSite(Thread):
         return {'csgo': csgohours, 'dota2': dota2hours}
 
     def is_ban_trade(self, steam_profile):
+        if self.quitFlag:
+            try:
+                return None
+            except Exception:
+                print("try exit")
         self.driver.get(steam_profile)
         try:
             WebDriverWait(self.driver, 10).until(
@@ -188,10 +214,7 @@ class ParserSite(Thread):
         return True
 
     def end_work(self):
-        try:
-            self.quitFlag = True
-        except Exception:
-            print("Quit")
+        self.quitFlag = True
 
 
 if __name__ == '__main__':
@@ -200,5 +223,6 @@ if __name__ == '__main__':
     while True:
         if input() == 'q':
             SiteParser.end_work()
+            SiteParser.join()
             break
     # /html/body/div[2]/div/div/div/div[2]/div[2]/div[3]/div[2]/div[1]/div
