@@ -21,7 +21,7 @@ def load_webdriver():
     profile.set_preference('permissions.default.image', 2)
 
     fireOptions = webdriver.FirefoxOptions()
-    # Отключение браузера
+    # Отключение визуала браузера
     # fireOptions.add_argument("--headless")
 
     return webdriver.Firefox(executable_path=url_driver,
@@ -69,7 +69,10 @@ def get_steam_account():
 
 def item_price():
     # Получени стоймости профиля Steam
-    driver.get(URL_PRICE)
+    try:
+        driver.get(URL_PRICE)
+    except Exception:
+        pass
     for steam_profile in steam_profiles:
         WebDriverWait(driver, 60).until(
             EC.visibility_of_element_located(
@@ -92,13 +95,13 @@ def item_price():
             for Steam_item_elem in Steam_item_elems:
                 if Steam_item_elem.find_elements_by_class_name(
                         "notTradable") == []:
-                    title = Steam_item_elem.find_element_by_xpath(
-                        ".//div[1]").text
-                    price = Steam_item_elem.find_element_by_xpath(
-                        ".//div[2]").text
+                    title = Steam_item_elem.find_element_by_class_name(
+                        "lztSv--item--title").text
+                    price = Steam_item_elem.find_element_by_class_name(
+                        "lztSv--item--price").text
                     Steam_items[title] = price
-                elif Steam_item_elem.find_element_by_xpath(
-                        ".//div[2]").text == '0 руб.':
+                elif Steam_item_elem.find_element_by_class_name(
+                        "lztSv--item--price").text == '0 руб.':
                     break
         except Exception:
             driver.get(URL_PRICE)
@@ -110,13 +113,43 @@ def summa_items(Sitems):
     sum = 0
     for i in Sitems:
         if len(Sitems[i].split()) == 5:
-            sum += float(Sitems[i].split()[0].replace(',','.')) * int(Sitems[i].split()[3])
+            sum += float(
+                Sitems[i].split()[0].replace(
+                    ',', '.')) * int(Sitems[i].split()[3])
         else:
-            sum += float(Sitems[i].split()[0].replace(',','.'))
+            sum += float(Sitems[i].split()[0].replace(',', '.'))
     print(sum)
 
 
 def hours_play():
+    for steam_profile in steam_profiles:
+        print(steam_profile)
+        dota2hours = 0
+        csgohours = 0
+        try:
+            driver.get(steam_profile+"/games/?tab=all")
+        except Exception:
+            continue
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "game_570"))
+            )
+            dota2hours = driver.find_element_by_id(
+                "game_570").find_element_by_class_name(
+                    "hours_played").text.split()[0]
+        except Exception:
+            dota2hours = "dont play dota 2"
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "game_730"))
+            )
+            csgohours = driver.find_element_by_id(
+                "game_730").find_element_by_class_name(
+                    "hours_played").text.split()[0]
+        except Exception:
+            csgohours = "dont play csgo"
+        print(csgohours)
+        print(dota2hours)
 
 
 if __name__ == '__main__':
@@ -126,5 +159,6 @@ if __name__ == '__main__':
 
     get_steam_account()
     item_price()
+    hours_play()
     driver.close()
     # /html/body/div[2]/div/div/div/div[2]/div[2]/div[3]/div[2]/div[1]/div
