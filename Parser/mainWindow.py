@@ -1,10 +1,10 @@
-from parser import ParserSite
+from ParserSite import ParserSite
 import sqlite3
 from PyQt5.Qt import QTimer
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import (
     QWidget, QMessageBox, QPushButton, QHBoxLayout,
-    QVBoxLayout, QListWidget, QLabel)
+    QVBoxLayout, QListWidget, QLabel, QLineEdit)
 
 
 class MainWindow(QWidget):
@@ -15,6 +15,7 @@ class MainWindow(QWidget):
         self.cursor = self.conn.cursor()
         self.parser = ParserSite()
         self.createBD()
+        self.lastItem = None
         # self.conn.
         self.initUI()
         self.isActive = False
@@ -52,11 +53,13 @@ class MainWindow(QWidget):
 
         self.accountPrice = QLabel(parent=self, text="Стоймость аккаунта: ")
         self.IsBan = QLabel(parent=self, text="Бан на трейд: ")
-        self.hoursPlay = QLabel(parent=self, text="Часов наигранно")
+        self.hoursPlay = QLabel(parent=self, text="Часов наигранно: ")
 
         self.NickLabel = QLabel(parent=self, text="Имя профиля: ")
         self.lvlLabel = QLabel(parent=self, text="Уровень профиля: ")
-        self.lastOnlineLabel = QLabel(parent=self, text="Последний раз онлайн: ")
+        self.lastOnlineLabel = QLabel(
+            parent=self, text="Последний раз онлайн: ")
+        self.countFriends = QLabel(parent=self, text="Количество друзей: ")
 
         self.horizontalLayout = QHBoxLayout(self)
         self.horizontalLayout.addWidget(self.listBox)
@@ -70,6 +73,7 @@ class MainWindow(QWidget):
         self.verticalLayout.addWidget(self.lastOnlineLabel)
         self.verticalLayout.addWidget(self.IsBan)
         self.verticalLayout.addWidget(self.hoursPlay)
+        self.verticalLayout.addWidget(self.countFriends)
 
         self.btnLayout = QHBoxLayout()
         self.btnLayout.addWidget(self.isWorkLbl)
@@ -77,56 +81,110 @@ class MainWindow(QWidget):
         self.btnLayout.addWidget(self.stopBtn)
         self.btnLayout.addWidget(self.startBtn)
 
+        self.priceLabel = QLabel("Цена:", self)
+        self.priceEdit = QLineEdit("", self)
+        self.nickLabel = QLabel("Никнейм: ", self)
+        self.nickEdit = QLineEdit("", self)
+        self.nickEdit.textEdited.connect(self.nickEnter)
+        self.filterLayout = QHBoxLayout()
+        self.filterLayout.addWidget(self.priceLabel)
+        self.filterLayout.addWidget(self.priceEdit)
+        self.filterLayout.addWidget(self.nickLabel)
+        self.filterLayout.addWidget(self.nickEdit)
+
         self.horizontalLayout.addLayout(self.verticalLayout)
+        self.verticalLayout.addLayout(self.filterLayout)
         self.verticalLayout.addLayout(self.btnLayout)
 
         self.timer = QTimer(self)
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.aliveParser)
         self.timer.start()
+
+        self.clickTimer = QTimer(self)
+        self.clickTimer.setInterval(10)
+        self.clickTimer.timeout.connect(self.clickListElem)
+        self.clickTimer.start()
+
         self.startBtn.clicked.connect(self.startParse)
         self.stopBtn.clicked.connect(self.parserEndWork)
         self.refreshBtn.clicked.connect(self.refreshList)
-        self.listBox.clicked.connect(self.clickListElem)
         self.show()
+        self.refreshList()
 
     def refreshList(self):
         self.listBox.clear()
-        self.cursor.execute(
-            "SELECT nick FROM accounts WHERE is_ban_trade='False'")
-        count = 0
-        for item in self.cursor.fetchall():
-            self.listBox.insertItem(count, item[0])
-            count += 1
+        try:
+            self.cursor.execute(
+                "SELECT nick, items_price FROM accounts WHERE is_ban_trade='False' and items_price !='0 руб.'")
+            count = 0
+            for item in self.cursor.fetchall():
+                if self.priceEdit.text() == "":
+                    self.listBox.insertItem(count, item[0])
+                    count += 1
+                elif round(float(item[1].split()[0])/75, 2) > int(self.priceEdit.text()):
+                    self.listBox.insertItem(count, item[0])
+                    count += 1
+        except Exception:
+            pass
 
     def clickListElem(self):
         elem = self.listBox.currentItem()
-        sql = "SELECT * FROM accounts WHERE url='http://steamcommunity.com/profiles/"+str(elem.text()) + "';"
-        account = self.cursor.execute(sql).fetchone()
-        ban = ""
-        if account[5] == "False":
-            ban = "Нету"
-        else:
-            ban = "Есть"
-        self.urlLabel.setText("Ссылка на профиль: <a href =" + account[1] + ">"+account[1]+"<a>")
-        self.accountPrice.setText("Стоймость аккаунта: " + str(round(float(account[2].split()[0])/75,2)) + "$")
-        self.hoursPlay.setText("Часов наигранно: \nCS:GO: "+account[3] + " ч.\nDOTA 2: " + account[4] + " ч.")
-        self.IsBan.setText("Бан на трейд: " + ban)
+        if elem is not None and not elem == self.lastItem:
+            self.lastItem = elem
+            try:
+                sql = "SELECT * FROM accounts WHERE nick=\"" + \
+                    str(elem.text())+"\";"
+                account = self.cursor.execute(sql).fetchone()
+                ban = ""
+                if account[6] == "False":
+                    ban = "Нету"
+                else:
+                    ban = "Есть"
+                self.urlLabel.setText(
+                    "Ссылка на профиль: <a href =" + account[1] + ">"+account[1]+"<a>")
+                self.accountPrice.setText(
+                    "Стоймость аккаунта: " + str(round(float(account[3].split()[0])/75, 2)) + "$")
+                self.hoursPlay.setText(
+                    "Часов наигранно: \nCS:GO: "+account[4] + " ч.\nDOTA 2: " + account[5] + " ч.")
+                self.IsBan.setText("Бан на трейд: " + ban)
+                self.frcdrpLabel.setText(
+                    "Ссылка на ForceDrop: <a href="+account[2] + ">" + account[2])
+                self.NickLabel.setText("Имя профиля: "+account[7])
+                self.lvlLabel.setText("Уровень профиля: "+account[8])
+                self.lastOnlineLabel.setText(
+                    "Последний раз онлайн: "+account[9])
+                self.countFriends.setText("Количество друзей: " + account[10])
+            except Exception:
+                pass
 
     def createBD(self):
         self.cursor.execute(""" CREATE TABLE IF NOT EXISTS accounts(
             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             url TEXT,
-            forcedrop_url TEXT
+            forcedrop_url TEXT,
             items_price TEXT,
             csgo_hours TEXT,
             dota2_hours TEXT,
             is_ban_trade TEXT,
             nick TEXT,
             lvl TEXT,
-            last_online TEXT
+            last_online TEXT,
+            friend_count TEXT
         );
         """)
+
+    def nickEnter(self):
+        self.listBox.clear()
+        try:
+            self.cursor.execute(
+                "SELECT nick, items_price FROM accounts WHERE is_ban_trade='False' and items_price !='0 руб.' and nick LIKE ?", ['%'+self.nickEdit.text()+'%'])
+            count = 0
+            for item in self.cursor.fetchall():
+                self.listBox.insertItem(count, item[0])
+                count += 1
+        except Exception:
+            pass
 
     def parserEndWork(self):
         self.parser.end_work()
@@ -155,3 +213,12 @@ class MainWindow(QWidget):
             event.accept()
         else:
             event.ignore()
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Delete:
+            elem = self.listBox.currentItem()
+            row = self.listBox.row(elem)
+            self.listBox.takeItem(row)
+            self.cursor.execute(
+                "DELETE FROM accounts WHERE nick=\"" + elem.text() + "\"")
+            self.conn.commit()

@@ -30,6 +30,7 @@ class ParserSite(Thread):
         self.accounts = []
 
     def run(self):
+        print("Start")
         while True:
             if self.quitFlag:
                 try:
@@ -39,6 +40,7 @@ class ParserSite(Thread):
             try:
                 self.driver.get(self.URL)
             except Exception:
+                print("cjcb")
                 self.driver.quit()
                 break
             self.steam_profiles = []
@@ -59,21 +61,23 @@ class ParserSite(Thread):
                         'is_ban_trade': self.is_ban_trade(steam_profile),
                         'nick': self.getNick(),
                         'lvl': self.lvlAcc(),
-                        'last_online': self.lastOnline()
+                        'last_online': self.lastOnline(),
+                        'friend_count': self.friend_count()
                     }
-                    if self.isComplete and self.isValid(account['URL']):
+                    if self.isComplete and self.isValid(account['URL']) and not account['items_price'] == "0 руб.":
                         self.isComplete = False
                         self.cursor.execute(f""" INSERT INTO accounts(
                             url,
-                            forcedrop_url
+                            forcedrop_url,
                             items_price,
                             csgo_hours,
                             dota2_hours,
                             is_ban_trade,
                             nick,
                             lvl,
-                            last_online)
-                            VALUES (?,?,?,?,?,?)
+                            last_online,
+                            friend_count)
+                            VALUES (?,?,?,?,?,?,?,?,?,?)
                             """, (
                             str(account['URL']),
                             str(account['forcedrop_url']),
@@ -85,7 +89,8 @@ class ParserSite(Thread):
                             str(account['is_ban_trade']),
                             str(account['nick']),
                             str(account['lvl']),
-                            str(account['last_online']))
+                            str(account['last_online']),
+                            str(account['friend_count']))
                         )
                         self.conn.commit()
                         print("Add_user")
@@ -191,14 +196,18 @@ class ParserSite(Thread):
             self.driver.get(self.URL_PRICE)
         except Exception:
             pass
-        WebDriverWait(self.driver, 60).until(
-            EC.visibility_of_element_located(
-                (By.CLASS_NAME, "ProfileLinkInput"))
-        )
-        input_url = self.driver.find_element_by_class_name("ProfileLinkInput")
-        input_url.clear()
-        input_url.send_keys(steam_profile)
-        input_url.send_keys(Keys.ENTER)
+        try:
+            WebDriverWait(self.driver, 60).until(
+                EC.visibility_of_element_located(
+                    (By.CLASS_NAME, "ProfileLinkInput"))
+            )
+            input_url = self.driver.find_element_by_class_name(
+                "ProfileLinkInput")
+            input_url.clear()
+            input_url.send_keys(steam_profile)
+            input_url.send_keys(Keys.ENTER)
+        except Exception:
+            return 0
         try:
             WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located(
@@ -291,7 +300,6 @@ class ParserSite(Thread):
             )
         except Exception:
             return "Профиль скрыт"
-        print(self.driver.find_element_by_class_name("persona_level").text)
         return self.driver.find_element_by_class_name("persona_level").text
 
     def getNick(self):
@@ -313,6 +321,17 @@ class ParserSite(Thread):
         except Exception:
             return "Профиль скрыт"
         return self.driver.find_element_by_class_name("profile_in_game_header").text
+
+    def friend_count(self):
+        try:
+            WebDriverWait(self.driver, 5).until(
+                EC.visibility_of_element_located(
+                    (By.CLASS_NAME, "profile_friend_links"))
+            )
+        except Exception:
+            return "Профиль скрыт"
+        friend = self.driver.find_element_by_class_name("profile_friend_links")
+        return friend.find_element_by_class_name("profile_count_link_total").text
 
     def end_work(self):
         self.quitFlag = True
