@@ -116,7 +116,8 @@ class MainWindow(QWidget):
         self.listBox.clear()
         try:
             self.cursor.execute(
-                "SELECT nick, items_price FROM accounts WHERE is_ban_trade='False' and items_price !='0 руб.'")
+                "SELECT nick, items_price FROM accounts \
+                    WHERE is_ban_trade='False' and items_price !='0 руб.'")
             count = 0
             for item in self.cursor.fetchall():
                 if self.priceEdit.text() == "":
@@ -142,14 +143,18 @@ class MainWindow(QWidget):
                 else:
                     ban = "Есть"
                 self.urlLabel.setText(
-                    "Ссылка на профиль: <a href =" + account[1] + ">"+account[1]+"<a>")
+                    "Ссылка на профиль: <a href ="
+                    + account[1] + ">"+account[1]+"<a>")
                 self.accountPrice.setText(
-                    "Стоймость аккаунта: " + str(round(float(account[3].split()[0])/75, 2)) + "$")
+                    "Стоймость аккаунта: "
+                    + str(round(float(account[3].split()[0])/75, 2)) + "$")
                 self.hoursPlay.setText(
-                    "Часов наигранно: \nCS:GO: "+account[4] + " ч.\nDOTA 2: " + account[5] + " ч.")
+                    "Часов наигранно: \nCS:GO: "
+                    + account[4] + " ч.\nDOTA 2: " + account[5] + " ч.")
                 self.IsBan.setText("Бан на трейд: " + ban)
                 self.frcdrpLabel.setText(
-                    "Ссылка на ForceDrop: <a href="+account[2] + ">" + account[2])
+                    "Ссылка на ForceDrop: <a href="+account[2] + ">"
+                    + account[2 + "<a>"])
                 self.NickLabel.setText("Имя профиля: "+account[7])
                 self.lvlLabel.setText("Уровень профиля: "+account[8])
                 self.lastOnlineLabel.setText(
@@ -178,7 +183,9 @@ class MainWindow(QWidget):
         self.listBox.clear()
         try:
             self.cursor.execute(
-                "SELECT nick, items_price FROM accounts WHERE is_ban_trade='False' and items_price !='0 руб.' and nick LIKE ?", ['%'+self.nickEdit.text()+'%'])
+                "SELECT nick, items_price FROM accounts WHERE \
+                is_ban_trade='False' and items_price !='0 руб.' \
+                    and nick LIKE ?", ['%'+self.nickEdit.text()+'%'])
             count = 0
             for item in self.cursor.fetchall():
                 self.listBox.insertItem(count, item[0])
