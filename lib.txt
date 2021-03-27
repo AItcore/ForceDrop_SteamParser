@@ -1,0 +1,10 @@
+altgraph==0.17
+importlib-metadata==3.7.3
+pyinstaller==4.2
+pyinstaller-hooks-contrib==2021.1
+PyQt5==5.15.4
+PyQt5-Qt5==5.15.2
+PyQt5-sip==12.8.1
+selenium==3.141.0
+urllib3==1.26.3
+zipp==3.4.1
