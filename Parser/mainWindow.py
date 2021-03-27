@@ -17,7 +17,6 @@ class MainWindow(QWidget):
         self.parser = ParserSite(self.choosenSite)
         self.createBD()
         self.lastItem = None
-        # self.conn.
         self.initUI()
         self.isActive = False
 

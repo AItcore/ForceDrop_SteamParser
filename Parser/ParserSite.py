@@ -17,8 +17,6 @@ class ParserSite(Thread):
         self.accounts_used = []
         self.quitFlag = False
         self.url_driver = '/home/kirill/coding/python/Parser/geckodriver'
-        self.driver = self.load_webdriver()
-        self.driver.implicitly_wait(0)
         self.URL = URL
         self.URL_PRICE = "https://lolz.guru/market/steam-value"
         # Ссылки на steam профиль
@@ -30,6 +28,8 @@ class ParserSite(Thread):
         self.accounts = []
 
     def run(self):
+        self.driver = self.load_webdriver()
+        self.driver.implicitly_wait(0)
         print("Start")
         while True:
             if self.quitFlag:
