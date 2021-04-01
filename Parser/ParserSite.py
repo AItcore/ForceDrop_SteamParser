@@ -109,7 +109,7 @@ class ParserSite(Thread):
 
             fireOptions = webdriver.FirefoxOptions()
             # Отключение визуала браузера
-            # fireOptions.add_argument("--headless")
+            fireOptions.add_argument("--headless")
 
             return webdriver.Firefox(executable_path=self.url_driver,
                                      options=fireOptions,
@@ -265,9 +265,10 @@ class ParserSite(Thread):
             )
 
             Steam_items = dict()
-            Steam_item_elems = self.driver.find_elements_by_xpath(
-                "/html/body/div[2]/div/div/div/div[2]/div[2]/div[3]/div"
+            Steam_item_elems = self.driver.find_element_by_class_name(
+                "lztSv--items"
             )
+            Steam_item_elems = Steam_item_elems.find_elements_by_class_name("lztSv--item")
             for Steam_item_elem in Steam_item_elems:
                 if Steam_item_elem.find_elements_by_class_name(
                         "notTradable") == []:

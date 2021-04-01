@@ -35,7 +35,7 @@ class MainWindow(QWidget):
 
     def initUI(self):
         self.setFixedSize(800, 600)
-        self.setWindowTitle("ForceDrop Steam Accounts")
+        self.setWindowTitle("GGDrop Steam Accounts")
 
         self.listBox = QListWidget(self)
         self.listBox.setObjectName("listBox")
@@ -90,18 +90,18 @@ class MainWindow(QWidget):
         self.nickLabel = QLabel("Никнейм:", self)
         self.nickEdit = QLineEdit("", self)
         self.nickEdit.textEdited.connect(self.nickEnter)
-        self.siteLabel = QLabel("Сайт:",self)
-        self.siteCBox = QComboBox(self)
-        self.siteCBox.addItem("ForceDrop")
+        self.siteLabel = QLabel("Сайт:")
+        self.siteCBox = QComboBox()
         self.siteCBox.addItem("GGDrop")
+        self.siteCBox.addItem("ForceDrop")
 
         self.filterLayout = QHBoxLayout()
         self.filterLayout.addWidget(self.priceLabel)
         self.filterLayout.addWidget(self.priceEdit)
         self.filterLayout.addWidget(self.nickLabel)
         self.filterLayout.addWidget(self.nickEdit)
-        self.filterLayout.addWidget(self.siteLabel)
-        self.filterLayout.addWidget(self.siteCBox)
+        # self.filterLayout.addWidget(self.siteLabel)
+        # self.filterLayout.addWidget(self.siteCBox)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout.addLayout(self.filterLayout)
         self.verticalLayout.addLayout(self.btnLayout)
