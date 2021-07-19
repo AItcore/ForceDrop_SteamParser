@@ -4,7 +4,7 @@ from PyQt5.Qt import QTimer
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import (
     QWidget, QMessageBox, QPushButton, QHBoxLayout,
-    QVBoxLayout, QListWidget, QLabel, QLineEdit)
+    QVBoxLayout, QListWidget, QLabel, QLineEdit, QComboBox)
 
 
 class MainWindow(QWidget):
@@ -13,10 +13,10 @@ class MainWindow(QWidget):
         super().__init__()
         self.conn = sqlite3.connect("Account.db", check_same_thread=False)
         self.cursor = self.conn.cursor()
-        self.parser = ParserSite()
+        self.choosenSite = "https://ggdrop.one/"
+        self.parser = ParserSite(self.choosenSite)
         self.createBD()
         self.lastItem = None
-        # self.conn.
         self.initUI()
         self.isActive = False
 
@@ -24,14 +24,18 @@ class MainWindow(QWidget):
         if not (self.isActive and self.parser.isAlive()):
             self.isActive = True
             try:
-                self.parser.start()
+                if self.siteCBox.currentText() == "ForceDrop":
+                    self.parser = ParserSite("https://forcedrop.top/")
+                    self.parser.start()
+                elif self.siteCBox.currentText() == "GGDrop":
+                    self.parser = ParserSite("https://ggdrop.one/")
+                    self.parser.start()
             except Exception:
-                self.parser = ParserSite()
-                self.parser.start()
+                pass
 
     def initUI(self):
         self.setFixedSize(800, 600)
-        self.setWindowTitle("ForceDrop Steam Accounts")
+        self.setWindowTitle("GGDrop Steam Accounts")
 
         self.listBox = QListWidget(self)
         self.listBox.setObjectName("listBox")
@@ -47,7 +51,7 @@ class MainWindow(QWidget):
         self.urlLabel.setWordWrap(True)
         self.urlLabel.setOpenExternalLinks(True)
 
-        self.frcdrpLabel = QLabel(parent=self, text="Ссылка на ForceDrop: ")
+        self.frcdrpLabel = QLabel(parent=self, text="Ссылка на : ")
         self.frcdrpLabel.setWordWrap(True)
         self.frcdrpLabel.setOpenExternalLinks(True)
 
@@ -83,15 +87,21 @@ class MainWindow(QWidget):
 
         self.priceLabel = QLabel("Цена:", self)
         self.priceEdit = QLineEdit("", self)
-        self.nickLabel = QLabel("Никнейм: ", self)
+        self.nickLabel = QLabel("Никнейм:", self)
         self.nickEdit = QLineEdit("", self)
         self.nickEdit.textEdited.connect(self.nickEnter)
+        self.siteLabel = QLabel("Сайт:")
+        self.siteCBox = QComboBox()
+        self.siteCBox.addItem("GGDrop")
+        self.siteCBox.addItem("ForceDrop")
+
         self.filterLayout = QHBoxLayout()
         self.filterLayout.addWidget(self.priceLabel)
         self.filterLayout.addWidget(self.priceEdit)
         self.filterLayout.addWidget(self.nickLabel)
         self.filterLayout.addWidget(self.nickEdit)
-
+        # self.filterLayout.addWidget(self.siteLabel)
+        # self.filterLayout.addWidget(self.siteCBox)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout.addLayout(self.filterLayout)
         self.verticalLayout.addLayout(self.btnLayout)
@@ -116,7 +126,8 @@ class MainWindow(QWidget):
         self.listBox.clear()
         try:
             self.cursor.execute(
-                "SELECT nick, items_price FROM accounts WHERE is_ban_trade='False' and items_price !='0 руб.'")
+                "SELECT nick, items_price FROM accounts \
+                    WHERE is_ban_trade='False' and items_price !='0 руб.'")
             count = 0
             for item in self.cursor.fetchall():
                 if self.priceEdit.text() == "":
@@ -136,6 +147,11 @@ class MainWindow(QWidget):
                 sql = "SELECT * FROM accounts WHERE nick=\"" + \
                     str(elem.text())+"\";"
                 account = self.cursor.execute(sql).fetchone()
+                siteURL = ''
+                if 'forcedrop' in account[2]:
+                    siteURL = "ForceDrop"
+                else:
+                    siteURL = "GGDrop"
                 ban = ""
                 if account[6] == "False":
                     ban = "Нету"
@@ -146,14 +162,13 @@ class MainWindow(QWidget):
                 self.accountPrice.setText(
                     "Стоймость аккаунта: " + str(round(float(account[3].split()[0])/75, 2)) + "$")
                 self.hoursPlay.setText(
-                    "Часов наигранно: \nCS:GO: "+account[4] + " ч.\nDOTA 2: " + account[5] + " ч.")
+                    "Часов наигранно: \nCS:GO: " + account[4] + " ч.\nDOTA 2: " + account[5] + " ч.")
                 self.IsBan.setText("Бан на трейд: " + ban)
                 self.frcdrpLabel.setText(
-                    "Ссылка на ForceDrop: <a href="+account[2] + ">" + account[2])
+                    "Ссылка на " + siteURL + ": <a href="+account[2] + ">" + account[2] + "<a>")
                 self.NickLabel.setText("Имя профиля: "+account[7])
                 self.lvlLabel.setText("Уровень профиля: "+account[8])
-                self.lastOnlineLabel.setText(
-                    "Последний раз онлайн: "+account[9])
+                self.lastOnlineLabel.setText("Последний раз онлайн: "+account[9])
                 self.countFriends.setText("Количество друзей: " + account[10])
             except Exception:
                 pass
@@ -178,7 +193,9 @@ class MainWindow(QWidget):
         self.listBox.clear()
         try:
             self.cursor.execute(
-                "SELECT nick, items_price FROM accounts WHERE is_ban_trade='False' and items_price !='0 руб.' and nick LIKE ?", ['%'+self.nickEdit.text()+'%'])
+                "SELECT nick, items_price FROM accounts WHERE \
+                is_ban_trade='False' and items_price !='0 руб.' \
+                    and nick LIKE ?", ['%'+self.nickEdit.text()+'%'])
             count = 0
             for item in self.cursor.fetchall():
                 self.listBox.insertItem(count, item[0])

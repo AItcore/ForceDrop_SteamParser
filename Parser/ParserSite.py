@@ -9,7 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class ParserSite(Thread):
 
-    def __init__(self):
+    def __init__(self, URL):
         Thread.__init__(self)
         self.conn = sqlite3.connect("Account.db", check_same_thread=False)
         self.cursor = self.conn.cursor()
@@ -17,19 +17,19 @@ class ParserSite(Thread):
         self.accounts_used = []
         self.quitFlag = False
         self.url_driver = '/home/kirill/coding/python/Parser/geckodriver'
-        self.driver = self.load_webdriver()
-        self.driver.implicitly_wait(0)
-        self.URL = "https://forcedrop.top/"
+        self.URL = URL
         self.URL_PRICE = "https://lolz.guru/market/steam-value"
         # Ссылки на steam профиль
         self.steam_profiles = []
         # Ссылки на Forcedrop профиль
         self.isComplete = False
-        self.forcedropURL = dict()
+        self.siteURL = dict()
         self.players = []
         self.accounts = []
 
     def run(self):
+        self.driver = self.load_webdriver()
+        self.driver.implicitly_wait(0)
         print("Start")
         while True:
             if self.quitFlag:
@@ -54,7 +54,7 @@ class ParserSite(Thread):
                 if steam_profile not in self.accounts_used:
                     account = {
                         'URL': steam_profile,
-                        'forcedrop_url': self.forcedropURL[steam_profile],
+                        'forcedrop_url': self.siteURL[steam_profile],
                         'items_price': str(round(
                             self.item_price(steam_profile), 2)) + " руб.",
                         'hours_play': self.hours_play(steam_profile),
@@ -131,13 +131,7 @@ class ParserSite(Thread):
             return True
         return False
 
-    def get_steam_account(self):
-        if self.quitFlag:
-            try:
-                return None
-            except Exception:
-                print("try exit")
-        # Получение ссылок на профиль Forcedrop
+    def ForceDrop(self):
         items = []
         while True:
             try:
@@ -177,13 +171,69 @@ class ParserSite(Thread):
                     self.driver.find_element_by_class_name(
                         "profile-main__steam").get_attribute("href")
                 )
-                self.forcedropURL[self.driver.find_element_by_class_name(
+                self.siteURL[self.driver.find_element_by_class_name(
                     "profile-main__steam").get_attribute("href")] = player
                 if self.quitFlag:
                     break
                     return None
             except Exception:
                 pass
+
+    def ggDrop(self):
+        items = []
+        while True:
+            try:
+                items = []
+                WebDriverWait(self.driver, 20).until(
+                    EC.visibility_of_element_located(
+                        (By.CLASS_NAME, "live__item")
+                    )
+                )
+                items = self.driver.find_elements_by_class_name("live__item")
+                break
+            except Exception:
+                self.driver.get(self.URL)
+        for item in items:
+            try:
+                if item.find_element_by_class_name("live__link").get_attribute("href") not in self.players:
+                    self.players.append(item.find_element_by_class_name(
+                        "live__link").get_attribute("href"))
+                if self.quitFlag:
+                    break
+                    return None
+            except Exception:
+                pass
+        for player in self.players:
+            self.driver.get(player)
+            try:
+                WebDriverWait(self.driver, 20).until(
+                    EC.element_to_be_clickable(
+                        (By.CLASS_NAME, "profile__steam-big-link")
+                    )
+                )
+                self.steam_profiles.append(
+                    self.driver.find_element_by_class_name(
+                        "profile__steam-big-link").get_attribute("href")
+                )
+                self.siteURL[self.driver.find_element_by_class_name(
+                    "profile__steam-big-link").get_attribute("href")] = player
+                if self.quitFlag:
+                    break
+                    return None
+            except Exception:
+                pass
+
+    def get_steam_account(self):
+        if self.quitFlag:
+            try:
+                return None
+            except Exception:
+                print("try exit")
+        # Получение ссылок на профиль Forcedrop
+        if 'forcedrop' in self.URL:
+            self.ForceDrop()
+        elif 'ggdrop' in self.URL:
+            self.ggDrop()
 
     def item_price(self, steam_profile):
         if self.quitFlag:
@@ -215,9 +265,10 @@ class ParserSite(Thread):
             )
 
             Steam_items = dict()
-            Steam_item_elems = self.driver.find_elements_by_xpath(
-                "/html/body/div[2]/div/div/div/div[2]/div[2]/div[3]/div"
+            Steam_item_elems = self.driver.find_element_by_class_name(
+                "lztSv--items"
             )
+            Steam_item_elems = Steam_item_elems.find_elements_by_class_name("lztSv--item")
             for Steam_item_elem in Steam_item_elems:
                 if Steam_item_elem.find_elements_by_class_name(
                         "notTradable") == []:
